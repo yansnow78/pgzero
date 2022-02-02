@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Union
 import pygame
 from math import radians, sin, cos, atan2, degrees, sqrt
 
@@ -138,7 +137,7 @@ class Actor:
     _subrect = None
     _mask = None
     _drawed_surf = None
-    
+
     def _surface_cachekey(self):
         if self.subrect is None:
             hashv = 0
@@ -146,7 +145,6 @@ class Actor:
             hashv = hash((self.subrect.x, self.subrect.y,
                           self.subrect.width, self.subrect.height))
         return self._image_name + '.' + str(hashv)
-
 
     def _build_transformed_surf(self):
         key = self._surface_cachekey()
