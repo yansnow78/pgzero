@@ -8,6 +8,7 @@ from . import loaders
 from . import rect
 from . import spellcheck
 from .rect import ZRect
+from .collide import Collide
 
 from typing import Sequence, Tuple, Union
 from pygame import Vector2
@@ -135,7 +136,9 @@ class Actor:
     _opacity = 1.0
     _image_name = None
     _subrect = None
-
+    _mask = None
+    _drawed_surf = None
+    
     def _surface_cachekey(self):
         if self.subrect is None:
             hashv = 0
@@ -143,6 +146,7 @@ class Actor:
             hashv = hash((self.subrect.x, self.subrect.y,
                           self.subrect.width, self.subrect.height))
         return self._image_name + '.' + str(hashv)
+
 
     def _build_transformed_surf(self):
         key = self._surface_cachekey()
@@ -450,6 +454,9 @@ class Actor:
 
     def draw(self):
         s = self._build_transformed_surf()
+        if s != self._drawed_surf:
+            self._drawed_surf = s
+            self._mask = None
         game.screen.blit(s, self.topleft)
 
     def angle_to(self, target):
@@ -492,3 +499,74 @@ class Actor:
 
     def unload_image(self):
         loaders.images.unload(self._image_name)
+
+    def collidepoint_pixel(self, x, y=0):
+        if isinstance(x, tuple):
+            y = x[1]
+            x = x[0]
+        if self._mask is None:
+            self._mask = pygame.mask.from_surface(self._build_transformed_surf())
+
+        xoffset = int(x - self.left)
+        yoffset = int(y - self.top)
+        if xoffset < 0 or yoffset < 0:
+            return 0
+
+        width, height = self._mask.get_size()
+        if xoffset > width or yoffset > height:
+            return 0
+
+        return self._mask.get_at((xoffset, yoffset))
+
+    def collide_pixel(self, actor):
+        for a in [self, actor]:
+            if a._mask is None:
+                a._mask = pygame.mask.from_surface(a._build_transformed_surf())
+
+        xoffset = int(actor.left - self.left)
+        yoffset = int(actor.top - self.top)
+
+        return self._mask.overlap(actor._mask, (xoffset, yoffset))
+
+    def collidelist_pixel(self, actors):
+        for i in range(len(actors)):
+            if self.collide_pixel(actors[i]):
+                return i
+        return -1
+
+    def collidelistall_pixel(self, actors):
+        collided = []
+        for i in range(len(actors)):
+            if self.collide_pixel(actors[i]):
+                collided.append(i)
+        return collided
+
+    @property
+    def radius(self):
+        return self._radius
+
+    @radius.setter
+    def radius(self, radius):
+        self._radius = radius
+
+    def circle_collidepoints(self, points):
+        return Collide.circle_points(self.x, self.y, self._radius, points)
+
+    def circle_collidepoint(self, x, y):
+        return Collide.circle_point(self.x, self.y, self._radius, x, y)
+
+    def circle_collidecircle(self, actor):
+        return Collide.circle_circle(self.x, self.y, self._radius, actor.x, actor.y,
+                                     actor._radius)
+
+    def circle_colliderect(self, actor):
+        return Collide.circle_rect(self.x, self.y, self._radius, actor.left, actor.top,
+                                   actor.width, actor.height)
+
+    def obb_collidepoint(self, x, y):
+        w, h = self._orig_surf.get_size()
+        return Collide.obb_point(self.x, self.y, w, h, self._angle, x, y)
+
+    def obb_collidepoints(self, points):
+        w, h = self._orig_surf.get_size()
+        return Collide.obb_points(self.x, self.y, w, h, self._angle, points)
