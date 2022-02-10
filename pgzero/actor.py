@@ -8,10 +8,9 @@ from . import spellcheck
 from .rect import ZRect
 from .collide import Collide
 
-from typing import Sequence, Union, List
+from typing import Sequence, Union
 from pygame import Vector2
 from ._common import _Coordinate, _CanBeRect, _CanBeObb
-from ._common import _CanBeRect
 from typing import Union
 
 ANCHORS = {
