@@ -1,4 +1,4 @@
-from __future__ import annotations
+from typing import Union
 import pygame
 from math import radians, sin, cos, atan2, degrees, sqrt
 
@@ -8,10 +8,8 @@ from . import rect
 from . import spellcheck
 from .rect import ZRect
 from .collide import Collide
-
-from typing import Sequence, Tuple, Union
-from pygame import Vector2
-_Coordinate = Union[Tuple[float, float], Sequence[float], Vector2]
+from ._common import _CanBeRect
+from typing import Union
 
 ANCHORS = {
     'x': {
@@ -121,7 +119,7 @@ def _set_opacity(actor, current_surface):
 
 
 class Actor:
-    EXPECTED_INIT_KWARGS = SYMBOLIC_POSITIONS
+    EXPECTED_INIT_KWARGS = SYMBOLIC_POSITIONS | set(("subrect",))
     DELEGATED_ATTRIBUTES = [
         a for a in dir(rect.ZRect) if not a.startswith("_")
     ]
@@ -133,8 +131,6 @@ class Actor:
     _flip_y = False
     _angle = 0.0
     _opacity = 1.0
-    _image_name = None
-    _subrect = None
     _mask = None
     _drawed_surf = None
 
@@ -167,9 +163,10 @@ class Actor:
         self.__dict__["_rect"] = rect.ZRect((0, 0), (0, 0))
         # Initialise it at (0, 0) for size (0, 0).
         # We'll move it to the right place and resize it later
-
+        self._subrect = None
+        self._image_name: str = None
         self.image = image
-        self.subrect = kwargs.pop('subrect', None)
+        self.subrect = kwargs.get('subrect', None)
         self._init_position(pos, anchor, **kwargs)
 
     def __getattr__(self, attr):
@@ -417,7 +414,7 @@ class Actor:
         return self._subrect
 
     @subrect.setter
-    def subrect(self, subrect: Union[pygame.Rect, ZRect]):
+    def subrect(self, subrect: _CanBeRect):
         subr = subrect
         if subrect is not None:
             if not isinstance(self.subrect, ZRect):
@@ -428,12 +425,6 @@ class Actor:
             if self._subrect is not None:
                 subrect_tuple = (subr.x, subr.y, subr.w, subr.h)
             self._orig_surf = loaders.images.load(self.image, subrect=subrect_tuple)
-            # if self._subrect is None:
-            #     self._orig_surf = loaders.images.load(self.image)
-            # else:
-            #     self._orig_surf = loaders.images.load(self.image)\
-            #         .subsurface(self._subrect)
-            # self._surface_cache.clear()  # Clear out old image's cache.
             key = self._surface_cachekey()
             if key not in self._surface_cache.keys():
                 self._surface_cache[key] = [None] * 2
