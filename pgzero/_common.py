@@ -11,3 +11,4 @@ _CanBeRect = Union[
     Tuple[_Coordinate, _Coordinate],
     List[_Coordinate],
 ]
+_CanBeObb = Tuple[_CanBeRect, float]
