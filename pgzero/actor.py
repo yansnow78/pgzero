@@ -1,3 +1,4 @@
+from __future__ import annotations
 import pygame
 from math import radians, sin, cos, atan2, degrees, sqrt
 
